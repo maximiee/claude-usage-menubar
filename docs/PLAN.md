@@ -311,9 +311,15 @@ Gerät: WLAN aus, in Claude Code ausloggen, Schlüsselbund-Zugriff verweigern.
   `/Applications/Claude-Nutzung.app` kopiert; sie startet ohne
   Gatekeeper-Dialog, weil lokal gebaute Bundles kein Quarantäne-Attribut
   bekommen. **Das anschliessende DMG-Bundling schlug fehl** (`bundle_dmg.sh`).
-  Für dieses Projekt ohne Belang — der Plan verlangt nur die `.app` —, aber
-  `"targets": "all"` in `tauri.conf.json` versucht das DMG bei jedem Build.
-  Auf `["app"]` zu stellen macht den Build sauber und deutlich kürzer.
+  Für dieses Projekt ohne Belang — der Plan verlangt nur die `.app`.
+  Ausgeschlossen wurden als Ursache: fehlende Finder-Automation, ein
+  hängengebliebenes Volume unter `/Volumes`, zu wenig Plattenplatz. Die
+  eigentliche Ursache blieb **ungeklärt**. Ein Hinweis für später: das
+  Zwischenimage `rw.*.dmg` (30 MB) lag danach im Bundle-Verzeichnis — `hdiutil`
+  hat es also erzeugt, der Fehler trat erst im Schritt danach auf (Mounten,
+  Finder-Layout oder `convert`). Konsequenz: `bundle.targets` steht jetzt auf
+  `["app"]` statt `"all"`, das DMG wird gar nicht mehr versucht. Ein
+  Verifikationsbuild mit der neuen Einstellung lief in 1m51s sauber durch.
 - Der Release-Profilteil aus der Tauri-Vorlage (`lto = true`,
   `codegen-units = 1`) kostet ~18 Minuten gegenüber 24 Sekunden im
   Debug-Build. Für eine App, die alle 5 Minuten eine HTTP-Anfrage macht,

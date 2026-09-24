@@ -37,6 +37,11 @@ Das Ergebnis liegt unter
 `src-tauri/target/release/bundle/macos/Claude-Nutzung.app` und kann nach
 `/Applications` gezogen werden.
 
+Gebaut wird nur die `.app` (`bundle.targets` in `tauri.conf.json` steht auf
+`["app"]`). Ein DMG wird bewusst nicht erzeugt — es wird für die eigene
+Installation nicht gebraucht, und das DMG-Bundling schlug auf diesem Rechner
+aus ungeklärter Ursache fehl.
+
 Die App ist **nicht signiert und nicht notarisiert**. Beim ersten Start blockt
 macOS sie deshalb. Abhilfe: im Finder Rechtsklick auf die App → „Öffnen" →
 im Dialog nochmals „Öffnen". Das ist nur einmal nötig.
