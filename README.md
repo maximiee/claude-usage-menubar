@@ -5,7 +5,7 @@ Claude-Abo-Limits verbraucht ist und wann es zurückgesetzt wird.
 
 In der Menüleiste steht die Session-Auslastung als Prozentzahl. Ein Klick auf
 das Symbol öffnet ein Fenster mit allen Limits, Fortschrittsbalken und
-Reset-Countdown. Die Daten werden alle 5 Minuten aktualisiert.
+Reset-Countdown. Die Daten werden alle 10 Minuten aktualisiert.
 
 ## Wichtig: inoffizielle Datenquelle
 
@@ -78,8 +78,12 @@ deshalb ebenfalls.
   Frontend gegeben.
 - Die App erneuert das Token **nicht** selbst. Claude Code rotiert es. Ist es
   abgelaufen, steht im Fenster der Hinweis, kurz Claude Code zu öffnen.
-- Das Abfrageintervall liegt bei 5 Minuten. Nach einem HTTP 429 verdoppelt es
-  sich bis maximal 30 Minuten.
+- Das Abfrageintervall liegt bei 10 Minuten. Gemessen: ein erfolgreicher
+  Abruf sperrt den Endpunkt für mindestens 5 Minuten, ein 5-Minuten-Takt läge
+  also genau auf der Grenze. Nach einem HTTP 429 wachsen die Abstände in
+  5-Minuten-Schritten bis maximal 30 Minuten.
+- Der Knopf „Aktualisieren“ hilft deshalb nur begrenzt: kurz nach einem
+  erfolgreichen Abruf liefert der Endpunkt ohnehin nur 429.
 
 ## Entwicklung
 

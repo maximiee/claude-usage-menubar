@@ -12,8 +12,16 @@ use tauri_plugin_positioner::{Position, WindowExt};
 
 use usage::{Payload, UsageData};
 
-/// Nicht unter 5 Minuten — siehe Sicherheitsregeln in docs/PLAN.md.
-const POLL_INTERVAL: Duration = Duration::from_secs(5 * 60);
+/// Gemessen am 2026-09-24: ein erfolgreicher Abruf sperrt den Endpunkt für
+/// mindestens 5 Minuten. Ein Intervall von exakt 5 Minuten läge also genau auf
+/// der Grenze — jeder zusätzliche Abruf (Neustart, Knopf) kippt es darüber.
+/// 10 Minuten halten sicheren Abstand; für eine Anzeige, deren Session-Fenster
+/// 5 Stunden lang ist, reicht diese Auflösung bei Weitem.
+const POLL_INTERVAL: Duration = Duration::from_secs(10 * 60);
+/// Nach einem 429 wird **addiert**, nicht verdoppelt. Die Sperre löst sich nach
+/// wenigen Minuten; Verdoppeln (5→10→20→30) liess die App zwanzig Minuten auf
+/// ein Fenster warten, das längst wieder offen war.
+const POLL_BACKOFF_STEP: Duration = Duration::from_secs(5 * 60);
 /// Obergrenze für den Backoff nach HTTP 429.
 const POLL_INTERVAL_MAX: Duration = Duration::from_secs(30 * 60);
 
@@ -132,7 +140,7 @@ fn spawn_poller(app: AppHandle) {
         loop {
             let fetched = usage::fetch_usage().await;
             interval = if fetched.rate_limited {
-                (interval * 2).min(POLL_INTERVAL_MAX)
+                (interval + POLL_BACKOFF_STEP).min(POLL_INTERVAL_MAX)
             } else {
                 POLL_INTERVAL
             };
@@ -288,12 +296,25 @@ mod tests {
     }
 
     #[test]
-    fn backoff_verdoppelt_bis_zur_obergrenze() {
+    fn backoff_steigt_linear_bis_zur_obergrenze() {
+        let schritt = |i: Duration| (i + POLL_BACKOFF_STEP).min(POLL_INTERVAL_MAX);
+
+        // Nach dem ersten 429 soll die App nicht gleich zwanzig Minuten
+        // schweigen — die Sperre löst sich nach wenigen Minuten.
+        let nach_einem = schritt(POLL_INTERVAL);
+        assert_eq!(nach_einem, Duration::from_secs(15 * 60));
+        assert!(
+            nach_einem < POLL_INTERVAL * 2,
+            "linear muss schonender sein als verdoppeln"
+        );
+
         let mut interval = POLL_INTERVAL;
         for _ in 0..10 {
-            interval = (interval * 2).min(POLL_INTERVAL_MAX);
+            interval = schritt(interval);
         }
         assert_eq!(interval, POLL_INTERVAL_MAX);
+
+        // Sicherheitsregel aus dem Plan: nie unter 5 Minuten.
         assert!(POLL_INTERVAL >= Duration::from_secs(5 * 60));
     }
 }

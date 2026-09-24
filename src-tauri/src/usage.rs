@@ -318,7 +318,10 @@ fn message_for_status(status: u16) -> String {
         401 | 403 => "Die Anmeldung ist abgelaufen. Öffne kurz Claude Code, \
                       dann erneuert sich die Anmeldung von selbst."
             .to_string(),
-        429 => "Zu viele Anfragen. Der nächste Abruf wird verzögert.".to_string(),
+        429 => "Das Abruflimit des Endpunkts greift gerade. Er erlaubt nur etwa \
+                einen Abruf alle paar Minuten. Die App versucht es von selbst \
+                erneut — „Aktualisieren“ hilft jetzt nicht."
+            .to_string(),
         500..=599 => format!("Der Dienst antwortet gerade nicht (Status {status})."),
         other => format!("Unerwartete Antwort vom Server (Status {other})."),
     }
@@ -521,7 +524,7 @@ mod tests {
     #[test]
     fn statusmeldungen_sind_verstaendlich() {
         assert!(message_for_status(401).contains("Claude Code"));
-        assert!(message_for_status(429).contains("Zu viele Anfragen"));
+        assert!(message_for_status(429).contains("Abruflimit"));
         assert!(message_for_status(503).contains("503"));
         assert!(message_for_status(418).contains("418"));
     }

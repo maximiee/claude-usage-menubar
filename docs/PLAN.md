@@ -8,7 +8,8 @@ Eine schlanke macOS-Desktop-App, die dauerhaft in der Menüleiste läuft und auf
 
 - in der Menüleiste die aktuelle Session-Auslastung steht (z. B. `42 %`),
 - ein Klick auf das Symbol ein kleines Fenster öffnet, das alle Limits (Session, Woche, ggf. modellspezifische Wochenlimits) mit Fortschrittsbalken und Reset-Countdown zeigt,
-- die Daten sich automatisch alle 5 Minuten aktualisieren und per Knopf manuell aktualisiert werden können,
+- die Daten sich automatisch aktualisieren und per Knopf manuell aktualisiert werden können
+  (ursprünglich alle 5 Minuten geplant; **am 2026-09-24 auf 10 Minuten geändert**, siehe Messung unten),
 - Fehler (kein Login, abgelaufenes Token, Netzwerk, geändertes API-Format) verständlich angezeigt werden, statt die App abstürzen zu lassen,
 - die App als `.app` gebaut ist und auf Wunsch beim Login automatisch startet.
 
@@ -88,6 +89,28 @@ Die Werte sind Prozentangaben von 0 bis 100. `resets_at` kann ein ISO-8601-Strin
 - **Kein eigener Token-Refresh.** Claude Code rotiert das Token selbst. Ist es abgelaufen, zeigt die App den Hinweis „Öffne kurz Claude Code“ an.
 - Keine Zugangsdaten im Repository. Falls das Projekt auf GitHub landet, vorher prüfen.
 - Abfrageintervall nicht unter 5 Minuten, um Rate-Limits (HTTP 429) zu vermeiden.
+  **Nachtrag 2026-09-24:** 5 Minuten reichen nicht. Messung ohne laufende App,
+  sechs Anfragen im Minutenabstand:
+
+  ```
+  15:24:59  HTTP 200   session=15%, weekly_all=5%
+  15:25:59  HTTP 429   retry-after: 0
+  15:26:59  HTTP 429
+  15:28:00  HTTP 429
+  15:29:00  HTTP 429
+  15:30:00  HTTP 429
+  ```
+
+  Ein **erfolgreicher** Abruf sperrt den Endpunkt für mindestens 5 Minuten.
+  Ein Intervall von exakt 5 Minuten liegt damit auf der Grenze; jeder
+  zusätzliche Abruf (Neustart der App, Knopf „Aktualisieren“) kippt es
+  darüber. Intervall deshalb auf **10 Minuten**. Der Header `retry-after`
+  kommt zwar mit, hat aber den Wert `0` und taugt nicht zur Steuerung.
+
+  Ausserdem: der Backoff **addiert** jetzt 5 Minuten statt zu verdoppeln.
+  Verdoppeln (5→10→20→30) liess die App nach zwei Fehlschlägen zwanzig
+  Minuten warten, obwohl sich die Sperre nach wenigen Minuten löst — das war
+  die Ursache für „bekomme oft keine neue Prozentzahl“.
 
 ## Architektur
 
