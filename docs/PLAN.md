@@ -20,7 +20,8 @@ Eine schlanke macOS-Desktop-App, die dauerhaft in der Menüleiste läuft und auf
 - M1 abgeschlossen (2026-09-24): Build läuft fehlerfrei, Git-Repo steht.
 - M2 und M3 abgeschlossen, M4 und M5 im Code fertig (2026-09-24). 18 Unit-Tests grün.
 - Offen vor M6: optische Abnahme von M4 und die manuellen Fehlerfall-Tests aus M5.
-- Nächster Schritt: M6 (Feinschliff und Auslieferung).
+- M6 abgeschlossen (2026-09-24): App liegt unter `/Applications/Claude-Nutzung.app` und läuft.
+- Weiterhin offen: die manuellen Fehlerfall-Tests aus M5 (WLAN aus, ausloggen, Schlüsselbund verweigern).
 
 ## Technischer Rahmen
 
@@ -226,7 +227,7 @@ Einzelanfragen limitiert. Tray bewusst ohne Icon, nur Text (Icon in M6).
 
 ---
 
-### M4: Popover-Fenster  ✅ Code fertig (2026-09-24), optische Abnahme offen
+### M4: Popover-Fenster  ✅ abgeschlossen (2026-09-24)
 
 **Ziel:** Klick auf das Tray-Icon zeigt ein kleines Fenster mit allen Details.
 
@@ -249,7 +250,8 @@ Einzelanfragen limitiert. Tray bewusst ohne Icon, nur Text (Icon in M6).
 Popover) und `withGlobalTauri: false`. `severity` darf die Balkenfarbe nur
 nach oben korrigieren, nie nach unten — bekannt ist bisher nur `"normal"`.
 **Nicht umgesetzt:** Ausblenden bei Fokusverlust (nicht im Plan; würde beim
-Öffnen der Entwicklerwerkzeuge stören). Die optische Abnahme steht noch aus.
+Öffnen der Entwicklerwerkzeuge stören). Optische Abnahme am 2026-09-24 durch
+den Nutzer bestätigt.
 
 **Abnahme:** Alle Limits werden korrekt und gut lesbar angezeigt, der Countdown läuft, hell und dunkel sehen beide gut aus.
 
@@ -283,16 +285,43 @@ Gerät: WLAN aus, in Claude Code ausloggen, Schlüsselbund-Zugriff verweigern.
 
 ---
 
-### M6: Feinschliff und Auslieferung
+### M6: Feinschliff und Auslieferung  ✅ abgeschlossen (2026-09-24)
 
 **Ziel:** Eine fertige App, die ich täglich nutze.
 
-- [ ] Eigenes Tray-Icon (Template-Icon, schwarz/transparent, passt sich hell/dunkel an)
-- [ ] Autostart beim Login (`tauri-plugin-autostart`) mit Schalter im Fenster
-- [ ] Optional: macOS-Benachrichtigung bei 80 % und 95 % (`tauri-plugin-notification`), einmal pro Fenster
-- [ ] Optional: einstellbares Aktualisierungsintervall
-- [ ] `npm run tauri build` → `.app` nach `/Programme` kopieren
-- [ ] Kurze README mit Installation und dem Hinweis auf den inoffiziellen Endpunkt
+- [x] Eigenes Tray-Icon (Template-Icon, schwarz/transparent, passt sich hell/dunkel an)
+- [x] Autostart beim Login (`tauri-plugin-autostart`) mit Schalter im Fenster
+- [x] Optional: macOS-Benachrichtigung bei 80 % und 95 % (`tauri-plugin-notification`), einmal pro Fenster
+- [ ] ~~Optional: einstellbares Aktualisierungsintervall~~ — bewusst ausgelassen, Begründung im Befund unten
+- [x] `npm run tauri build` → `.app` nach `/Programme` kopieren
+- [x] Kurze README mit Installation und dem Hinweis auf den inoffiziellen Endpunkt
+
+**Befund vom 2026-09-24:** 23 Tests grün, warnungsfrei.
+
+- Tray-Icon: `icons/tray-template.png`, 44 × 44, rein schwarz mit Alpha, mit
+  Supersampling gezeichnet. `icon_as_template(true)` überlässt die Einfärbung
+  macOS. Dafür war das Tauri-Feature `image-png` nötig.
+- Autostart als Launch-Agent. Der Zustand wird beim Öffnen aus Rust gelesen
+  statt im Frontend gemerkt — der Agent kann auch ausserhalb der App entfernt
+  worden sein. `set_autostart` gibt zurück, was danach *tatsächlich* gilt.
+- Benachrichtigungen: die Entscheidung, was fällig ist, steckt in der reinen
+  Funktion `faellige_meldungen()`, getrennt vom Versand — dadurch ist die
+  Regel „einmal pro Fenster“ ohne macOS testbar (5 Tests).
+- Release-Build: 17m59s. Die `.app` wurde erzeugt und nach
+  `/Applications/Claude-Nutzung.app` kopiert; sie startet ohne
+  Gatekeeper-Dialog, weil lokal gebaute Bundles kein Quarantäne-Attribut
+  bekommen. **Das anschliessende DMG-Bundling schlug fehl** (`bundle_dmg.sh`).
+  Für dieses Projekt ohne Belang — der Plan verlangt nur die `.app` —, aber
+  `"targets": "all"` in `tauri.conf.json` versucht das DMG bei jedem Build.
+  Auf `["app"]` zu stellen macht den Build sauber und deutlich kürzer.
+- Der Release-Profilteil aus der Tauri-Vorlage (`lto = true`,
+  `codegen-units = 1`) kostet ~18 Minuten gegenüber 24 Sekunden im
+  Debug-Build. Für eine App, die alle 5 Minuten eine HTTP-Anfrage macht,
+  bringt das nichts ausser einer kleineren Binärdatei.
+- **Einstellbares Intervall bewusst ausgelassen:** nach unten begrenzt die
+  Sicherheitsregel ohnehin auf 5 Minuten, und der M0-Befund zeigt, wie schnell
+  der Endpunkt mit 429 antwortet. Ein Regler, der genau dorthin führt, schafft
+  mehr Ärger als Nutzen; nach oben ist der Gewinn gering.
 
 **Abnahme:** Die gebaute App startet nach einem Neustart des Macs automatisch und zeigt korrekte Werte.
 

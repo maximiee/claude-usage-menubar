@@ -1,4 +1,5 @@
 mod credentials;
+mod notify;
 mod tray;
 mod usage;
 
@@ -6,6 +7,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_positioner::{Position, WindowExt};
 
 use usage::{Payload, UsageData};
@@ -23,6 +25,8 @@ struct AppState {
     /// Letzter *erfolgreicher* Abruf. Überlebt Fehler, damit bei Netzproblemen
     /// weiter Zahlen im Fenster stehen statt einer leeren Fläche.
     last_good: Mutex<Option<UsageData>>,
+    /// Welche Schwellen in welchem Reset-Fenster schon gemeldet wurden.
+    gemeldet: notify::Gemeldet,
 }
 
 /// Verarbeitet einen Abruf. Schlägt er fehl und liegt ein früherer guter
@@ -35,6 +39,7 @@ pub(crate) fn handle_result(app: &AppHandle, fetched: usage::Fetched) {
                 if let Ok(mut guard) = state.last_good.lock() {
                     *guard = Some(data.clone());
                 }
+                notify::melde(app, &state.gemeldet, &data.limits);
             }
             fetched.payload
         }
@@ -109,6 +114,22 @@ fn spawn_poller(app: AppHandle) {
     });
 }
 
+/// Läuft die App beim Login mit?
+#[tauri::command]
+fn get_autostart(app: AppHandle) -> bool {
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+/// Autostart ein- oder ausschalten. Gibt den Zustand zurück, der danach
+/// tatsächlich gilt — nicht den gewünschten.
+#[tauri::command]
+fn set_autostart(app: AppHandle, aktiv: bool) -> Result<bool, String> {
+    let starter = app.autolaunch();
+    let ergebnis = if aktiv { starter.enable() } else { starter.disable() };
+    ergebnis.map_err(|e| format!("Autostart liess sich nicht ändern: {e}"))?;
+    Ok(starter.is_enabled().unwrap_or(aktiv))
+}
+
 /// Zwischengespeichertes Ergebnis, ohne neuen Abruf.
 #[tauri::command]
 fn get_last(state: tauri::State<'_, AppState>) -> Option<Payload> {
@@ -131,8 +152,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![get_last, refresh_now])
+        .invoke_handler(tauri::generate_handler![
+            get_last,
+            refresh_now,
+            get_autostart,
+            set_autostart
+        ])
         .on_window_event(|window, event| {
             // Schliessen beendet die App nicht, es versteckt nur das Popover.
             if let WindowEvent::CloseRequested { api, .. } = event {

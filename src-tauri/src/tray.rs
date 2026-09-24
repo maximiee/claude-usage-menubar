@@ -17,9 +17,13 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let quit = MenuItem::with_id(app, "quit", "Beenden", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&refresh, &quit])?;
 
-    // Bewusst ohne Icon: ein Template-Icon kommt in M6; das bunte
-    // Standard-App-Icon würde als schwarzer Klecks erscheinen.
+    // Template-Icon: rein schwarz mit Alpha. macOS färbt es selbst um,
+    // damit es in heller wie dunkler Menüleiste sitzt.
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?;
+
     TrayIconBuilder::with_id(TRAY_ID)
+        .icon(icon)
+        .icon_as_template(true)
         .menu(&menu)
         .title(TITLE_PENDING)
         // Voreinstellung ist `true` — damit würde der Linksklick das Menü

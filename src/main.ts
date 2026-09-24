@@ -24,6 +24,7 @@ type Payload = { ok: true; data: UsageData } | { ok: false; error: string };
 const inhalt = document.querySelector<HTMLElement>("#inhalt")!;
 const stand = document.querySelector<HTMLElement>("#stand")!;
 const refreshKnopf = document.querySelector<HTMLButtonElement>("#refresh")!;
+const autostartBox = document.querySelector<HTMLInputElement>("#autostart")!;
 
 /// Letztes Ergebnis, damit der Countdown ohne neuen Abruf weiterlaufen kann.
 let letztes: Payload | null = null;
@@ -198,6 +199,34 @@ async function jetztAktualisieren(): Promise<void> {
 
 refreshKnopf.addEventListener("click", () => {
   void jetztAktualisieren();
+});
+
+// --- Autostart ---
+
+// Der Zustand kommt aus Rust, nicht aus dem Frontend-Speicher: der Nutzer
+// kann den Launch-Agent auch ausserhalb der App entfernt haben.
+void invoke<boolean>("get_autostart")
+  .then((aktiv) => {
+    autostartBox.checked = aktiv;
+  })
+  .catch(() => {
+    autostartBox.disabled = true;
+  });
+
+autostartBox.addEventListener("change", () => {
+  const gewuenscht = autostartBox.checked;
+  autostartBox.disabled = true;
+  void invoke<boolean>("set_autostart", { aktiv: gewuenscht })
+    .then((tatsaechlich) => {
+      // Zurückstellen, falls das Setzen nicht gegriffen hat.
+      autostartBox.checked = tatsaechlich;
+    })
+    .catch(() => {
+      autostartBox.checked = !gewuenscht;
+    })
+    .finally(() => {
+      autostartBox.disabled = false;
+    });
 });
 
 // Beim Laden den zwischengespeicherten Stand zeigen, damit das Fenster

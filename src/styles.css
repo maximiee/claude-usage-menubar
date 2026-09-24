@@ -228,3 +228,33 @@ body {
   color: var(--text-leise);
   white-space: pre-wrap;
 }
+
+/* --- Autostart-Schalter --- */
+
+.fuss {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.autostart {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-leise);
+  cursor: pointer;
+  flex: none;
+}
+
+.autostart input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.autostart input:disabled,
+.autostart:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
