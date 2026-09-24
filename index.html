@@ -1,43 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
-    <script type="module" src="/src/main.ts" defer></script>
+    <title>Claude-Nutzung</title>
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
-
   <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+    <main class="panel">
+      <header class="kopf">
+        <h1 class="titel">Claude-Nutzung</h1>
+        <button id="refresh" class="knopf" type="button" title="Jetzt aktualisieren">
+          Aktualisieren
+        </button>
+      </header>
 
-      <div class="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/src/assets/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img
-            src="/src/assets/tauri.svg"
-            class="logo tauri"
-            alt="Tauri logo"
-          />
-        </a>
-        <a href="https://www.typescriptlang.org/docs" target="_blank">
-          <img
-            src="/src/assets/typescript.svg"
-            class="logo typescript"
-            alt="typescript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+      <section id="inhalt" class="inhalt" aria-live="polite">
+        <p class="hinweis">Wird geladen …</p>
+      </section>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
+      <footer class="fuss">
+        <span id="stand" class="stand"></span>
+      </footer>
     </main>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

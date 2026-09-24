@@ -18,10 +18,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
+# Positioniert das Popover unter dem Menüleisten-Symbol.
+tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# rustls statt native-tls: vermeidet eine Abhaengigkeit von System-OpenSSL.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["time"] }
+chrono = "0.4"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

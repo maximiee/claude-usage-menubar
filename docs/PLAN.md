@@ -18,7 +18,9 @@ Eine schlanke macOS-Desktop-App, die dauerhaft in der Menüleiste läuft und auf
 - M0 abgeschlossen (2026-09-24): Toolchain steht, Endpunkt liefert HTTP 200. Format siehe Befund unter M0.
 - Tauri-Gerüst unter `src-tauri/` ist bereits vorhanden, `npx tauri init` entfällt.
 - M1 abgeschlossen (2026-09-24): Build läuft fehlerfrei, Git-Repo steht.
-- Nächster Schritt: M2 (Datenabruf in Rust).
+- M2 und M3 abgeschlossen, M4 und M5 im Code fertig (2026-09-24). 18 Unit-Tests grün.
+- Offen vor M6: optische Abnahme von M4 und die manuellen Fehlerfall-Tests aus M5.
+- Nächster Schritt: M6 (Feinschliff und Auslieferung).
 
 ## Technischer Rahmen
 
@@ -172,72 +174,110 @@ Hinweis: WebStorm unterstützt Rust nicht. Die Dateien in `src-tauri/` werden nu
 
 ---
 
-### M2: Datenabruf in Rust
+### M2: Datenabruf in Rust  ✅ abgeschlossen (2026-09-24)
 
 **Ziel:** Rust kann das Token lesen, den Endpunkt abfragen und eine einheitliche Liste von Limits zurückgeben.
 
-- [ ] Abhängigkeiten in `src-tauri/Cargo.toml`: `reqwest` (Feature `json`), `serde`, `serde_json`, `tokio` (Feature `time`)
-- [ ] `credentials.rs`: Token per `/usr/bin/security` lesen, `expiresAt` gegen aktuelle Zeit prüfen, verständliche Fehlermeldungen auf Deutsch
-- [ ] `usage.rs`: Anfrage mit den Headern oben, Timeout 15 s
-- [ ] Normalisierung: zuerst `limits`-Array auswerten, sonst flache Keys als Fallback
+- [x] Abhängigkeiten in `src-tauri/Cargo.toml`: `reqwest` (Feature `json`), `serde`, `serde_json`, `tokio` (Feature `time`)
+- [x] `credentials.rs`: Token per `/usr/bin/security` lesen, `expiresAt` gegen aktuelle Zeit prüfen, verständliche Fehlermeldungen auf Deutsch
+- [x] `usage.rs`: Anfrage mit den Headern oben, Timeout 15 s
+- [x] Normalisierung: zuerst `limits`-Array auswerten, sonst flache Keys als Fallback
   - `session` → „Session“, `weekly_all` → „Woche (alle Modelle)“, `weekly_scoped` → „Woche (<Modellname>)“
   - `five_hour` → „Session (5 Std.)“, `seven_day` → „Woche (alle Modelle)“, `seven_day_sonnet`/`seven_day_opus` → „Woche (Sonnet/Opus)“
   - `null`-Einträge überspringen
-- [ ] HTTP-Status abfangen: 401 → „Token abgelaufen“, 429 → „Zu viele Anfragen“, sonst Status anzeigen
-- [ ] Leere Liste nach dem Parsen → Fehler „Format hat sich vermutlich geändert“
-- [ ] Unit-Tests für die Normalisierung mit beiden Beispiel-JSONs (ohne Netzwerk)
-- [ ] Tauri-Command `refresh_now` zum Testen aus dem Frontend
+- [x] HTTP-Status abfangen: 401 → „Token abgelaufen“, 429 → „Zu viele Anfragen“, sonst Status anzeigen
+- [x] Leere Liste nach dem Parsen → Fehler „Format hat sich vermutlich geändert“
+- [x] Unit-Tests für die Normalisierung mit beiden Beispiel-JSONs (ohne Netzwerk)
+- [x] Tauri-Command `refresh_now` zum Testen aus dem Frontend
+
+**Befund vom 2026-09-24:** `cargo test` grün. Abweichungen vom Plantext:
+`chrono` als zusätzliche Abhängigkeit für `fetched_at`; `reqwest` mit
+`rustls-tls` statt native-tls (keine System-OpenSSL-Abhängigkeit); `Limit`
+hat zwei Felder mehr als das Datenmodell oben — `severity` (aus der echten
+Antwort, für M4) und `kind` (um die Session-Zeile zu finden, ohne auf
+Anzeigetexte zu matchen). Das Token steckt in einem `Secret`-Typ, dessen
+`Debug` nur `Secret(***)` ausgibt. Unbekannte `kind`-Werte im Array werden
+angezeigt statt verworfen; im flachen Fallback gilt umgekehrt die Whitelist.
 
 **Abnahme:** `cargo test` ist grün. Ein Aufruf von `refresh_now` liefert dieselben Werte wie der curl-Test aus M0.
 
 ---
 
-### M3: Menüleiste und automatische Aktualisierung
+### M3: Menüleiste und automatische Aktualisierung  ✅ abgeschlossen (2026-09-24)
 
 **Ziel:** Die App lebt in der Menüleiste und zeigt die Session-Prozentzahl.
 
-- [ ] Tauri-Feature `tray-icon` aktivieren
-- [ ] Dock-Symbol ausblenden: `ActivationPolicy::Accessory`
-- [ ] Tray-Icon mit ID `main`, Titel = Prozent des ersten Limits (Session), z. B. `42 %`, bei Fehler `⚠︎`
-- [ ] Rechtsklick-Menü mit „Aktualisieren“ und „Beenden“
-- [ ] Poll-Schleife mit `tauri::async_runtime::spawn`: sofort abrufen, dann alle 5 Minuten
-- [ ] Letztes Ergebnis in einem `Mutex`-State cachen, Command `get_last` bereitstellen
-- [ ] Nach jedem Abruf Event `usage-updated` ans Frontend senden
+- [x] Tauri-Feature `tray-icon` aktivieren
+- [x] Dock-Symbol ausblenden: `ActivationPolicy::Accessory`
+- [x] Tray-Icon mit ID `main`, Titel = Prozent des ersten Limits (Session), z. B. `42 %`, bei Fehler `⚠︎`
+- [x] Rechtsklick-Menü mit „Aktualisieren“ und „Beenden“
+- [x] Poll-Schleife mit `tauri::async_runtime::spawn`: sofort abrufen, dann alle 5 Minuten
+- [x] Letztes Ergebnis in einem `Mutex`-State cachen, Command `get_last` bereitstellen
+- [x] Nach jedem Abruf Event `usage-updated` ans Frontend senden
+
+**Befund vom 2026-09-24:** 16 Tests grün, App startet fehlerfrei.
+Der Tray-Titel nimmt **nicht** das erste Limit, sondern sucht gezielt
+`kind == "session"` bzw. `"five_hour"` (Rückfall: erstes Limit) — die
+Reihenfolge im Array ist nicht garantiert. Der 429-Backoff aus M5 wurde
+hierher vorgezogen, weil der Endpunkt laut M0-Befund schon bei
+Einzelanfragen limitiert. Tray bewusst ohne Icon, nur Text (Icon in M6).
 
 **Abnahme:** Nach dem Start erscheint kein Dock-Symbol, aber in der Menüleiste steht die korrekte Prozentzahl. Nach 5 Minuten aktualisiert sie sich von selbst.
 
 ---
 
-### M4: Popover-Fenster
+### M4: Popover-Fenster  ✅ Code fertig (2026-09-24), optische Abnahme offen
 
 **Ziel:** Klick auf das Tray-Icon zeigt ein kleines Fenster mit allen Details.
 
-- [ ] In `tauri.conf.json`: Fenster `main`, ca. 340 × 380 px, nicht skalierbar, `visible: false` beim Start
-- [ ] Linksklick aufs Icon zeigt/versteckt das Fenster, Schließen versteckt nur (App läuft weiter)
-- [ ] Optional: Fenster unter dem Icon positionieren (Plugin `tauri-plugin-positioner`)
-- [ ] Frontend: beim Laden `get_last` aufrufen, auf `usage-updated` hören
-- [ ] Pro Limit: Name, Prozent, Fortschrittsbalken, „Reset in 2 Std. 15 Min.“ plus Uhrzeit (Format `de-DE`)
-- [ ] Balkenfarbe nach Auslastung: unter 60 % ruhig, 60–85 % Warnung, ab 85 % kritisch
-- [ ] Countdown lokal alle 30 Sekunden neu berechnen (ohne neuen API-Aufruf)
-- [ ] Knopf „Jetzt aktualisieren“ und Zeile „Zuletzt aktualisiert: 14:32“
-- [ ] Texte per `textContent` setzen (kein `innerHTML` mit API-Daten)
-- [ ] Hell- und Dunkelmodus über `prefers-color-scheme`
+- [x] In `tauri.conf.json`: Fenster `main`, ca. 340 × 380 px, nicht skalierbar, `visible: false` beim Start
+- [x] Linksklick aufs Icon zeigt/versteckt das Fenster, Schließen versteckt nur (App läuft weiter)
+- [x] Optional: Fenster unter dem Icon positionieren (Plugin `tauri-plugin-positioner`)
+- [x] Frontend: beim Laden `get_last` aufrufen, auf `usage-updated` hören
+- [x] Pro Limit: Name, Prozent, Fortschrittsbalken, „Reset in 2 Std. 15 Min.“ plus Uhrzeit (Format `de-DE`)
+- [x] Balkenfarbe nach Auslastung: unter 60 % ruhig, 60–85 % Warnung, ab 85 % kritisch
+- [x] Countdown lokal alle 30 Sekunden neu berechnen (ohne neuen API-Aufruf)
+- [x] Knopf „Jetzt aktualisieren“ und Zeile „Zuletzt aktualisiert: 14:32“
+- [x] Texte per `textContent` setzen (kein `innerHTML` mit API-Daten)
+- [x] Hell- und Dunkelmodus über `prefers-color-scheme`
+
+**Befund vom 2026-09-24:** 16 Tests grün, `tsc --noEmit` sauber, App läuft.
+`show_menu_on_left_click(false)` war nötig — Voreinstellung ist `true`, sonst
+öffnet der Linksklick das Menü statt des Fensters. Zusätzlich zum Plan in
+`tauri.conf.json`: `decorations: false`, `alwaysOnTop: true`,
+`skipTaskbar: true` (ohne die drei verhält sich das Fenster nicht wie ein
+Popover) und `withGlobalTauri: false`. `severity` darf die Balkenfarbe nur
+nach oben korrigieren, nie nach unten — bekannt ist bisher nur `"normal"`.
+**Nicht umgesetzt:** Ausblenden bei Fokusverlust (nicht im Plan; würde beim
+Öffnen der Entwicklerwerkzeuge stören). Die optische Abnahme steht noch aus.
 
 **Abnahme:** Alle Limits werden korrekt und gut lesbar angezeigt, der Countdown läuft, hell und dunkel sehen beide gut aus.
 
 ---
 
-### M5: Fehlerfälle und Robustheit
+### M5: Fehlerfälle und Robustheit  ⚠️ Code fertig (2026-09-24), Abnahme offen
 
 **Ziel:** Die App bleibt in jeder Lage benutzbar.
 
-- [ ] Nicht in Claude Code eingeloggt → Hinweis mit Anleitung
-- [ ] Token abgelaufen → „Öffne kurz Claude Code, dann erneuert sich die Anmeldung“
-- [ ] Offline / Timeout → letzten gültigen Wert weiter anzeigen, als veraltet markieren
-- [ ] 429 → nächsten Abruf verzögern (z. B. Intervall verdoppeln, max. 30 Minuten)
-- [ ] Unbekanntes Format → klare Meldung statt Absturz
-- [ ] Schlüsselbund-Zugriff verweigert → Hinweis, wie man ihn erlaubt
+- [x] Nicht in Claude Code eingeloggt → Hinweis mit Anleitung
+- [x] Token abgelaufen → „Öffne kurz Claude Code, dann erneuert sich die Anmeldung“
+- [x] Offline / Timeout → letzten gültigen Wert weiter anzeigen, als veraltet markieren
+- [x] 429 → nächsten Abruf verzögern (z. B. Intervall verdoppeln, max. 30 Minuten)
+- [x] Unbekanntes Format → klare Meldung statt Absturz
+- [x] Schlüsselbund-Zugriff verweigert → Hinweis, wie man ihn erlaubt
 - [ ] Jeden Fall einmal gezielt ausprobieren (WLAN aus, ausloggen usw.)
+
+**Befund vom 2026-09-24:** 18 Tests grün. Vier der Fälle waren mit M2/M3
+bereits erledigt. Neu: `AppState` trennt `last` (was angezeigt wird) von
+`last_good` (letzter erfolgreicher Abruf); schlägt ein Abruf fehl, wird der
+frühere Stand mit `stale: true` und der Fehlermeldung als `notice` gezeigt.
+`fetched_at` behält den **alten** Zeitpunkt. Alle drei Auslöser eines Abrufs
+laufen über `handle_result()`, damit der Rückfall keinen Pfad auslässt.
+
+**Offen:** Der Tray-Titel zeigt bei veralteten Werten weiter die alte
+Prozentzahl ohne Kennzeichen — plankonform, aber an der Menüleiste allein
+nicht erkennbar. **Offen:** Der letzte Punkt oben ist manuelle Arbeit am
+Gerät: WLAN aus, in Claude Code ausloggen, Schlüsselbund-Zugriff verweigern.
 
 **Abnahme:** In keinem der Fälle stürzt die App ab, und jede Meldung sagt, was zu tun ist.
 
