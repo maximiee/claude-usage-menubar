@@ -54,12 +54,22 @@ Erlaubnis kann die App das Token nicht lesen.
 | Aktion | Wirkung |
 |---|---|
 | Linksklick aufs Symbol | Fenster zeigen oder verstecken |
+| Klick irgendwo daneben | Fenster schliesst sich |
 | Rechtsklick aufs Symbol | Menü mit „Aktualisieren" und „Beenden" |
 | Knopf „Aktualisieren" | Sofortiger Abruf |
 | Haken „Beim Login starten" | Autostart ein- oder ausschalten |
 
 Bei 80 % und 95 % Auslastung kommt eine Benachrichtigung — je Limit und
 Reset-Zeitraum einmal.
+
+In der Menüleiste steht die Session-Auslastung. Ein Sternchen dahinter
+(`42 %*`) heisst: der Wert stammt aus einem früheren Abruf, der letzte ist
+fehlgeschlagen — der Grund steht im Fenster. Ein `⚠︎` statt einer Zahl heisst,
+dass noch gar kein Wert vorliegt.
+
+Das Fenster schliesst sich, sobald es den Fokus verliert, wie ein übliches
+Menüleisten-Popover. Beim Öffnen der Entwicklerwerkzeuge verschwindet es
+deshalb ebenfalls.
 
 ## Umgang mit dem Token
 
