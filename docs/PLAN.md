@@ -1,5 +1,8 @@
 # Projektplan: Claude Usage Menübar-App (macOS)
 
+> Ein Windows-Client ist in einem zweiten Plan beschrieben:
+> [`PLAN-WINDOWS.md`](PLAN-WINDOWS.md). Noch nichts davon gebaut.
+
 ## Ziel
 
 Eine schlanke macOS-Desktop-App, die dauerhaft in der Menüleiste läuft und auf einen Blick zeigt, wie viel Prozent meines Claude-Abo-Limits verbraucht sind und wann das Limit zurückgesetzt wird.

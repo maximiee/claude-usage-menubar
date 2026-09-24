@@ -104,7 +104,10 @@ Der Rust-Teil liegt in `src-tauri/src/`:
 | `lib.rs` | Zustand, Poll-Schleife, Commands |
 
 Der Projektplan mit allen Meilensteinen und den Befunden aus der Umsetzung
-steht in [`docs/PLAN.md`](docs/PLAN.md).
+steht in [`docs/PLAN.md`](docs/PLAN.md). Ein zweiter Plan für einen
+Windows-Client liegt in [`docs/PLAN-WINDOWS.md`](docs/PLAN-WINDOWS.md) —
+bisher nur Analyse, nichts davon ist gebaut. Die App läuft derzeit
+ausschliesslich unter macOS.
 
 WebStorm unterstützt Rust nicht — die Dateien unter `src-tauri/` werden nur als
 Text angezeigt. Wer Rust bearbeiten will, öffnet den Ordner zusätzlich in
