@@ -321,9 +321,17 @@ Gerät: WLAN aus, in Claude Code ausloggen, Schlüsselbund-Zugriff verweigern.
   `["app"]` statt `"all"`, das DMG wird gar nicht mehr versucht. Ein
   Verifikationsbuild mit der neuen Einstellung lief in 1m51s sauber durch.
 - Der Release-Profilteil aus der Tauri-Vorlage (`lto = true`,
-  `codegen-units = 1`) kostet ~18 Minuten gegenüber 24 Sekunden im
-  Debug-Build. Für eine App, die alle 5 Minuten eine HTTP-Anfrage macht,
-  bringt das nichts ausser einer kleineren Binärdatei.
+  `codegen-units = 1`) kostete 17m59s für einen vollständigen Build. Auf
+  `lto = "thin"` und `codegen-units = 16` umgestellt und gemessen:
+
+  | | vorher | nachher |
+  |---|---|---|
+  | Bauzeit (vollständig) | 17m59s | **3m47s** |
+  | Binärdatei | 5,5 MB | 6,8 MB |
+  | `.app` | 5,6 MB | 6,9 MB |
+
+  Knapp ein Viertel der Zeit für 1,3 MB mehr. Für eine App, die alle 5 Minuten
+  eine HTTP-Anfrage stellt, ist Laufzeitoptimierung ohnehin kein Thema.
 - **Einstellbares Intervall bewusst ausgelassen:** nach unten begrenzt die
   Sicherheitsregel ohnehin auf 5 Minuten, und der M0-Befund zeigt, wie schnell
   der Endpunkt mit 429 antwortet. Ein Regler, der genau dorthin führt, schafft

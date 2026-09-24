@@ -35,8 +35,11 @@ chrono = "0.4"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
-codegen-units = 1
-lto = true
+# Thin LTO statt fat, und Parallelisierung statt codegen-units = 1:
+# deutlich kürzere Buildzeit bei minimal grösserer Binärdatei. Für eine App,
+# die alle 5 Minuten eine HTTP-Anfrage macht, ist Laufzeit kein Thema.
+codegen-units = 16
+lto = "thin"
 opt-level = 3
 panic = "abort"
 strip = true
